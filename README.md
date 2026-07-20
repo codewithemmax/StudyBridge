@@ -322,6 +322,19 @@ npm run dev
 
 ---
 
+## Prototype Step 1: WhatsApp Webhook Intake
+
+This repository now includes a minimal Node.js/TypeScript webhook server for the first prototype milestone. It verifies Meta WhatsApp Cloud API webhooks, accepts inbound image/text messages, downloads WhatsApp media, sends image intake to OpenAI, and replies with a Socratic first question.
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Set the Meta webhook callback URL to `https://<ngrok-host>/whatsapp/webhook` when exposing the local server with Ngrok. See `docs/step-1-webhook-intake.md` for the full setup and prototype risk notes.
+
+
 #  Target Users
 
 - WAEC students
