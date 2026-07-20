@@ -345,6 +345,11 @@ The tutoring flow now uses a code-level Socratic state machine. The model can su
 
 The webhook can now persist students, tutoring sessions, messages, topic struggle snapshots, and syllabus anchors to Supabase through the free PostgREST API. Run the SQL files in `database/` and configure the Supabase environment variables before live testing. See `docs/step-3-database-integration.md` for setup and persistence risks.
 
+
+## Prototype Step 4: Weekly Digest Generation
+
+The prototype can now aggregate the last 7 days of Supabase struggle logs, rank weak topics, generate 3 practice questions, and send a WhatsApp-friendly weekly digest. Use `npm run digest:weekly` or `POST /jobs/weekly-digests`. See `docs/step-4-digest-generation.md` and `docs/setup.md` for the full setup flow.
+
 #  Target Users
 
 - WAEC students
