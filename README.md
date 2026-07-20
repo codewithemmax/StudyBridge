@@ -322,6 +322,29 @@ npm run dev
 
 ---
 
+## Prototype Step 1: WhatsApp Webhook Intake
+
+This repository now includes a minimal Node.js/TypeScript webhook server for the first prototype milestone. It verifies Meta WhatsApp Cloud API webhooks, accepts inbound image/text messages, downloads WhatsApp media, sends image intake to OpenAI, and replies with a Socratic first question.
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Set the Meta webhook callback URL to `https://<ngrok-host>/whatsapp/webhook` when exposing the local server with Ngrok. See `docs/step-1-webhook-intake.md` for the full setup and prototype risk notes.
+
+
+
+## Prototype Step 2: State Handling & Guardrails
+
+The tutoring flow now uses a code-level Socratic state machine. The model can suggest a reply, but the application decides whether the student should receive a question, a small hint, or a worked answer. Early final-answer leaks are blocked before WhatsApp delivery. See `docs/step-2-state-guardrails.md` for the guardrail policy and risks.
+
+
+## Prototype Step 3: Database Integration
+
+The webhook can now persist students, tutoring sessions, messages, topic struggle snapshots, and syllabus anchors to Supabase through the free PostgREST API. Run the SQL files in `database/` and configure the Supabase environment variables before live testing. See `docs/step-3-database-integration.md` for setup and persistence risks.
+
 #  Target Users
 
 - WAEC students
