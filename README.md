@@ -340,6 +340,11 @@ Set the Meta webhook callback URL to `https://<ngrok-host>/whatsapp/webhook` whe
 
 The tutoring flow now uses a code-level Socratic state machine. The model can suggest a reply, but the application decides whether the student should receive a question, a small hint, or a worked answer. Early final-answer leaks are blocked before WhatsApp delivery. See `docs/step-2-state-guardrails.md` for the guardrail policy and risks.
 
+
+## Prototype Step 3: Database Integration
+
+The webhook can now persist students, tutoring sessions, messages, topic struggle snapshots, and syllabus anchors to Supabase through the free PostgREST API. Run the SQL files in `database/` and configure the Supabase environment variables before live testing. See `docs/step-3-database-integration.md` for setup and persistence risks.
+
 #  Target Users
 
 - WAEC students

@@ -7,6 +7,8 @@ export const env = {
   WHATSAPP_PHONE_NUMBER_ID: nonEmpty(process.env.WHATSAPP_PHONE_NUMBER_ID),
   OPENAI_API_KEY: nonEmpty(process.env.OPENAI_API_KEY),
   OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-5.6',
+  SUPABASE_URL: nonEmpty(process.env.SUPABASE_URL),
+  SUPABASE_KEY: nonEmpty(process.env.SUPABASE_SERVICE_ROLE_KEY) ?? nonEmpty(process.env.SUPABASE_ANON_KEY),
 };
 
 function nonEmpty(value: string | undefined): string | undefined {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { env } from '../config/env.js';
+import { persistSessionStarted, persistSessionTurn } from '../db/learningLog.js';
 import { analyzeProblemImage } from '../openai/vision.js';
 import { generateFollowUp } from '../openai/tutor.js';
 import { enforceSocraticGuardrail } from '../state/guardrails.js';
@@ -30,7 +31,8 @@ async function handleMessage(message: InboundMessage): Promise<void> {
   if (message.type === 'image' && message.image?.id) {
     const image = await downloadWhatsAppMedia(message.image.id);
     const analysis = await analyzeProblemImage(image, message.image.caption);
-    upsertSessionFromIntake({ studentPhone: message.from, ...analysis, firstPrompt: analysis.firstQuestion });
+    const session = upsertSessionFromIntake({ studentPhone: message.from, ...analysis, firstPrompt: analysis.firstQuestion });
+    await persistSessionStarted(session);
     await sendWhatsAppText(message.from, analysis.firstQuestion);
     return;
   }
@@ -45,6 +47,7 @@ async function handleMessage(message: InboundMessage): Promise<void> {
     const modelReply = await generateFollowUp(session, message.text.body, decision);
     const guarded = enforceSocraticGuardrail(session, modelReply, decision);
     advanceAfterAssistantReply(session, guarded.reply, guarded.blockedAnswerLeak);
+    await persistSessionTurn(session);
     await sendWhatsAppText(message.from, guarded.reply);
   }
 }
