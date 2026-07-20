@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { env } from '../config/env.js';
 import { analyzeProblemImage } from '../openai/vision.js';
 import { generateFollowUp } from '../openai/tutor.js';
+import { enforceSocraticGuardrail } from '../state/guardrails.js';
 import { advanceAfterAssistantReply, decisionFor, recordStudentReply, upsertSessionFromIntake } from '../state/socraticState.js';
 import { downloadWhatsAppMedia, sendWhatsAppText } from '../whatsapp/client.js';
 
@@ -40,10 +41,11 @@ async function handleMessage(message: InboundMessage): Promise<void> {
       await sendWhatsAppText(message.from, 'Please send a photo of the homework problem first so I can anchor our tutoring session to your syllabus.');
       return;
     }
-    const decision = decisionFor(session.stage);
-    const reply = await generateFollowUp(session, message.text.body, decision.maxAnswerDetail);
-    advanceAfterAssistantReply(session, reply);
-    await sendWhatsAppText(message.from, reply);
+    const decision = decisionFor(session);
+    const modelReply = await generateFollowUp(session, message.text.body, decision);
+    const guarded = enforceSocraticGuardrail(session, modelReply, decision);
+    advanceAfterAssistantReply(session, guarded.reply, guarded.blockedAnswerLeak);
+    await sendWhatsAppText(message.from, guarded.reply);
   }
 }
 

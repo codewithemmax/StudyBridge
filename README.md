@@ -335,6 +335,11 @@ npm run dev
 Set the Meta webhook callback URL to `https://<ngrok-host>/whatsapp/webhook` when exposing the local server with Ngrok. See `docs/step-1-webhook-intake.md` for the full setup and prototype risk notes.
 
 
+
+## Prototype Step 2: State Handling & Guardrails
+
+The tutoring flow now uses a code-level Socratic state machine. The model can suggest a reply, but the application decides whether the student should receive a question, a small hint, or a worked answer. Early final-answer leaks are blocked before WhatsApp delivery. See `docs/step-2-state-guardrails.md` for the guardrail policy and risks.
+
 #  Target Users
 
 - WAEC students
