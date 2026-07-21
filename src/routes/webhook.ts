@@ -4,7 +4,7 @@ import { analyzeProblemImage } from '../openai/vision.js';
 import { generateFollowUp } from '../openai/tutor.js';
 import { enforceSocraticGuardrail } from '../state/guardrails.js';
 import { advanceAfterAssistantReply, decisionFor, recordStudentReply, upsertSessionFromIntake } from '../state/socraticState.js';
-import { downloadWhatsAppMedia, sendWhatsAppText } from '../whatsapp/client.js';
+import { sendWhatsAppText } from '../whatsapp/client.js';
 
 export const webhookRouter = Router();
 
@@ -31,11 +31,9 @@ async function handleTwilioWebhook(body: unknown): Promise<void> {
   }
 
   if (message.mediaUrl && message.mediaContentType?.startsWith('image/')) {
-    console.log('[handleTwilioWebhook] Image message — downloading media from:', message.mediaUrl);
-    const image = await downloadWhatsAppMedia(message.mediaUrl, message.mediaContentType);
-    console.log('[handleTwilioWebhook] Media downloaded — mimeType:', image.mimeType);
-    const analysis = await analyzeProblemImage(image, message.body);
-    console.log('[handleTwilioWebhook] OpenAI analysis:', JSON.stringify(analysis));
+    console.log('[handleTwilioWebhook] Image message — forwarding media URL to Groq:', message.mediaUrl);
+    const analysis = await analyzeProblemImage({ url: message.mediaUrl }, message.body);
+    console.log('[handleTwilioWebhook] Groq analysis:', JSON.stringify(analysis));
     const session = upsertSessionFromIntake({ studentPhone: message.from, ...analysis, firstPrompt: analysis.firstQuestion });
     console.log('[handleTwilioWebhook] Session created — id:', session.id);
     await persistSessionStarted(session);

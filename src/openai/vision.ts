@@ -1,5 +1,9 @@
+import Groq from 'groq-sdk';
 import { env } from '../config/env.js';
 import { intakePrompt, WAEC_JAMB_SYLLABUS } from '../prompts/socratic.js';
+
+const groq = env.GROQ_API_KEY ? new Groq({ apiKey: env.GROQ_API_KEY }) : undefined;
+const GROQ_MODEL = 'qwen/qwen3.6-27b';
 
 export interface IntakeAnalysis {
   problemSummary: string;
@@ -8,43 +12,32 @@ export interface IntakeAnalysis {
   firstQuestion: string;
 }
 
-export async function analyzeProblemImage(image: { mimeType: string; base64: string }, caption?: string): Promise<IntakeAnalysis> {
-  if (!env.OPENAI_API_KEY) {
+export async function analyzeProblemImage(image: { mimeType?: string; base64?: string; url?: string }, caption?: string): Promise<IntakeAnalysis> {
+  if (!groq || !image.url) {
     return offlineIntake(caption);
   }
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: env.OPENAI_MODEL,
-      input: [
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: `${intakePrompt()}\nCaption: ${caption ?? ''}` },
-            { type: 'input_image', image_url: `data:${image.mimeType};base64,${image.base64}` },
-          ],
-        },
-      ],
-      text: { format: { type: 'json_object' } },
-    }),
+  const response = await groq.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: `${intakePrompt()}\nCaption: ${caption ?? ''}\nReturn only valid JSON.` },
+          { type: 'image_url', image_url: { url: image.url } },
+        ],
+      },
+    ],
+    response_format: { type: 'json_object' },
   });
 
-  if (!response.ok) {
-    throw new Error(`OpenAI intake failed: ${response.status} ${await response.text()}`);
-  }
-
-  const payload = (await response.json()) as { output_text?: string };
-  return normalizeIntake(JSON.parse(payload.output_text ?? '{}'));
+  const content = response.choices[0]?.message?.content;
+  return normalizeIntake(JSON.parse(content ?? '{}'));
 }
 
 function offlineIntake(caption?: string): IntakeAnalysis {
   return normalizeIntake({
-    problemSummary: caption || 'Image received; configure OPENAI_API_KEY to parse the exact problem.',
+    problemSummary: caption || 'Image received; configure GROQ_API_KEY to parse the exact problem.',
     topicId: 'math.algebra.quadratics',
     topicLabel: 'Mathematics > Algebra > Quadratic equations',
     firstQuestion: 'What is the first relationship or formula you think this problem is asking you to use?',

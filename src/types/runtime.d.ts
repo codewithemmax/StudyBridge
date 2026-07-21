@@ -52,3 +52,23 @@ declare module 'twilio' {
   }
   export default function twilio(accountSid: string, authToken: string): TwilioClient;
 }
+
+
+declare module 'groq-sdk' {
+  type ChatMessageContent = string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
+  interface ChatCompletionCreateOptions {
+    model: string;
+    messages: Array<{ role: 'user' | 'assistant' | 'system'; content: ChatMessageContent }>;
+    response_format?: { type: 'json_object' };
+  }
+  interface ChatCompletionResponse {
+    choices: Array<{ message?: { content?: string | null } }>;
+  }
+  interface GroqClient {
+    chat: { completions: { create(options: ChatCompletionCreateOptions): Promise<ChatCompletionResponse> } };
+  }
+  export default class Groq implements GroqClient {
+    constructor(options: { apiKey: string });
+    chat: GroqClient['chat'];
+  }
+}
