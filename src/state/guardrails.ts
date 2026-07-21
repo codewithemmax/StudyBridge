@@ -1,10 +1,11 @@
 import type { SocraticReplyDecision, TutoringSession } from './socraticState.js';
 
-const directAnswerPatterns = [
-  /\b(final\s+answer|answer\s+is|solution\s+is|equals|=)\b/i,
-  /\btherefore\b.*\b(answer|solution|x\s*=|y\s*=)\b/i,
-  /\b(?:x|y|z)\s*=\s*-?\d+(?:\.\d+)?\b/i,
-  /\b(?:option|answer)\s+[a-d]\b/i,
+// Only match when the reply is conclusively stating the final answer, not mid-explanation
+const finalAnswerPatterns = [
+  /\b(the\s+)?(final\s+answer|answer\s+is|solution\s+is)\s*[=:]?\s*-?[\d.]+/i,
+  /\btherefore[^.]*\b(x|y|z)\s*=\s*-?[\d.]+/i,
+  /\b(x|y|z)\s*=\s*-?[\d.]+\s*($|\.)/im,
+  /\b(option|answer)\s+[a-d]\s+is\s+correct/i,
 ];
 
 const questionStarters = /\b(what|which|why|how|where|when|can you|could you|do you|does|is there|are there)\b/i;
@@ -21,13 +22,13 @@ export function enforceSocraticGuardrail(
 ): GuardrailResult {
   const normalized = modelReply.trim().replace(/\s+/g, ' ');
   if (decision.allowFinalAnswer) {
-    return { reply: limitWhatsAppLength(normalized || fallbackQuestion(session)), blockedAnswerLeak: false };
+    return { reply: limitWhatsAppLength(toWhatsAppFormat(normalized || fallbackQuestion(session))), blockedAnswerLeak: false };
   }
 
-  const leakedAnswer = directAnswerPatterns.some((pattern) => pattern.test(normalized));
+  const leakedAnswer = finalAnswerPatterns.some((pattern) => pattern.test(normalized));
   if (leakedAnswer) {
     return {
-      reply: buildSafeRedirect(session, decision.maxAnswerDetail),
+      reply: buildSafeRedirect(session, decision.maxAnswerDetail, normalized),
       blockedAnswerLeak: true,
     };
   }
@@ -37,7 +38,7 @@ export function enforceSocraticGuardrail(
     ? ensureHintThenQuestion(question, session)
     : question;
 
-  return { reply: limitWhatsAppLength(reply), blockedAnswerLeak: false };
+  return { reply: limitWhatsAppLength(toWhatsAppFormat(reply)), blockedAnswerLeak: false };
 }
 
 export function classifyStudentIntent(message: string): 'direct_answer_request' | 'attempt' | 'unclear' {
@@ -51,11 +52,20 @@ export function classifyStudentIntent(message: string): 'direct_answer_request' 
   return 'unclear';
 }
 
-function buildSafeRedirect(session: TutoringSession, maxAnswerDetail: SocraticReplyDecision['maxAnswerDetail']): string {
-  if (maxAnswerDetail === 'small_hint') {
-    return `Small hint: focus on the key idea in ${session.topicLabel}. What value, relationship, or formula from the question should we write down first?`;
-  }
-  return `Let's not jump to the final answer yet. What is the first known quantity or relationship in this ${session.topicLabel} problem?`;
+function buildSafeRedirect(session: TutoringSession, maxAnswerDetail: SocraticReplyDecision['maxAnswerDetail'], modelReply: string): string {
+  // Try to salvage the part of the reply before the answer leak
+  const leakIndex = finalAnswerPatterns.reduce((earliest, pattern) => {
+    const match = pattern.exec(modelReply);
+    return match && match.index < earliest ? match.index : earliest;
+  }, modelReply.length);
+
+  const safePrefix = modelReply.slice(0, leakIndex).trim().replace(/[,:\s]+$/, '');
+
+  const redirectQuestion = maxAnswerDetail === 'small_hint'
+    ? `What value or relationship from the question should we write down first?`
+    : `What do you think the next step is?`;
+
+  return limitWhatsAppLength(toWhatsAppFormat(safePrefix ? `${safePrefix}. ${redirectQuestion}` : redirectQuestion));
 }
 
 function ensureHintThenQuestion(question: string, session: TutoringSession): string {
@@ -78,4 +88,13 @@ function fallbackQuestion(session: TutoringSession): string {
 
 function limitWhatsAppLength(text: string): string {
   return text.length > 900 ? `${text.slice(0, 897).trim()}...` : text;
+}
+
+function toWhatsAppFormat(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '*$1*')       // **bold** -> *bold*
+    .replace(/^#{1,6}\s+(.+)$/gm, '*$1*')    // ### Heading -> *Heading*
+    .replace(/^[-*]\s+/gm, '• ')             // - item / * item -> • item
+    .replace(/\n{3,}/g, '\n\n')              // collapse excess blank lines
+    .trim();
 }

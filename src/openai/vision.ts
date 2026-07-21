@@ -31,8 +31,9 @@ export async function analyzeProblemImage(image: { mimeType?: string; base64?: s
     response_format: { type: 'json_object' },
   });
 
-  const content = response.choices[0]?.message?.content;
-  return normalizeIntake(JSON.parse(content ?? '{}'));
+  const content = response.choices[0]?.message?.content ?? '';
+  const clean = content.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/think>/gi, '').trim();
+  return normalizeIntake(JSON.parse(clean || '{}'));
 }
 
 function offlineIntake(caption?: string): IntakeAnalysis {

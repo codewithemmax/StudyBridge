@@ -18,5 +18,11 @@ export async function generateFollowUp(session: TutoringSession, studentReply: s
     messages: [{ role: 'user', content: followUpPrompt(session, studentReply, decision) }],
   });
 
-  return response.choices[0]?.message?.content?.trim() || 'What do you think the next step should be?';
+  const raw = response.choices[0]?.message?.content ?? '';
+  return stripThinkingTags(raw).trim() || 'What do you think the next step should be?';
+}
+
+function stripThinkingTags(text: string): string {
+  // Remove <think>...</think> blocks including partial closing tags
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/think>/gi, '').trim();
 }
