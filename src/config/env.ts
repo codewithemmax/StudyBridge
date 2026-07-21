@@ -5,6 +5,7 @@ export const env = {
   TWILIO_ACCOUNT_SID: nonEmpty(process.env.TWILIO_ACCOUNT_SID),
   TWILIO_AUTH_TOKEN: nonEmpty(process.env.TWILIO_AUTH_TOKEN),
   TWILIO_PHONE_NUMBER: nonEmpty(process.env.TWILIO_PHONE_NUMBER),
+  GROQ_API_KEY: nonEmpty(process.env.GROQ_API_KEY),
   OPENAI_API_KEY: nonEmpty(process.env.OPENAI_API_KEY),
   OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-5.6',
   SUPABASE_URL: nonEmpty(process.env.SUPABASE_URL),
