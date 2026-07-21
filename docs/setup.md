@@ -36,15 +36,17 @@ OPENAI_MODEL=gpt-5.6
 
 If no OpenAI key is set, the app uses deterministic fallback prompts and practice questions for local demos.
 
-## 4. Configure WhatsApp Cloud API test number
+## 4. Configure Twilio Sandbox for WhatsApp
 
-In the Meta developer console, copy:
+In the Twilio Console, open **Messaging > Try it out > Send a WhatsApp message** and join the sandbox from your phone. Copy these values into `.env`:
 
 ```env
-WHATSAPP_ACCESS_TOKEN=<temporary-or-system-user-token>
-WHATSAPP_PHONE_NUMBER_ID=<test-phone-number-id>
-VERIFY_TOKEN=<your-own-random-webhook-token>
+TWILIO_ACCOUNT_SID=<account-sid>
+TWILIO_AUTH_TOKEN=<auth-token>
+TWILIO_PHONE_NUMBER=whatsapp:+14155238886
 ```
+
+The sandbox sender is commonly `whatsapp:+14155238886`, but use the exact sender shown in your Twilio Sandbox page.
 
 ## 5. Start the webhook server
 
@@ -58,19 +60,19 @@ npm run dev
 ngrok http 3000
 ```
 
-Set the Meta webhook callback URL to:
+Set the Twilio Sandbox webhook URL to:
 
 ```text
 https://<ngrok-host>/whatsapp/webhook
 ```
 
-Use the same `VERIFY_TOKEN` from `.env`.
+Twilio does not use a GET verification challenge; configure the Sandbox webhook as HTTP POST.
 
 ## 7. Test intake
 
 Send a homework image to the WhatsApp test number. The server should:
 
-1. download the image from Meta;
+1. download the image from Twilio `MediaUrl0`;
 2. send it to the vision layer;
 3. map it to a WAEC/JAMB topic;
 4. persist the student/session/message records;

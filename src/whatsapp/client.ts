@@ -1,27 +1,36 @@
+import twilio from 'twilio';
 import { env } from '../config/env.js';
 
-const graphBase = 'https://graph.facebook.com/v20.0';
+let cachedClient: ReturnType<typeof twilio> | undefined;
 
-export async function downloadWhatsAppMedia(mediaId: string): Promise<{ mimeType: string; base64: string }> {
-  if (!env.WHATSAPP_ACCESS_TOKEN) throw new Error('WHATSAPP_ACCESS_TOKEN is required to download media.');
-  const metadata = await fetch(`${graphBase}/${mediaId}`, { headers: { Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}` } });
-  if (!metadata.ok) throw new Error(`WhatsApp media metadata failed: ${metadata.status} ${await metadata.text()}`);
-  const { url, mime_type: mimeType } = (await metadata.json()) as { url: string; mime_type: string };
-  const media = await fetch(url, { headers: { Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}` } });
-  if (!media.ok) throw new Error(`WhatsApp media download failed: ${media.status} ${await media.text()}`);
-  const bytes = Buffer.from(await media.arrayBuffer());
+function getTwilioClient(): ReturnType<typeof twilio> | undefined {
+  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) return undefined;
+  cachedClient ??= twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+  return cachedClient;
+}
+
+export async function downloadWhatsAppMedia(mediaUrl: string, mimeType = 'application/octet-stream'): Promise<{ mimeType: string; base64: string }> {
+  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
+    throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are required to download Twilio media.');
+  }
+
+  const credentials = Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+  const response = await fetch(mediaUrl, { headers: { Authorization: `Basic ${credentials}` } });
+  if (!response.ok) throw new Error(`Twilio media download failed: ${response.status} ${await response.text()}`);
+  const bytes = Buffer.from(await response.arrayBuffer());
   return { mimeType, base64: bytes.toString('base64') };
 }
 
 export async function sendWhatsAppText(to: string, body: string): Promise<void> {
-  if (!env.WHATSAPP_ACCESS_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) {
-    console.log(`[dev] WhatsApp reply to ${to}: ${body}`);
+  const client = getTwilioClient();
+  if (!client || !env.TWILIO_PHONE_NUMBER) {
+    console.log(`[dev] Twilio WhatsApp reply to ${to}: ${body}`);
     return;
   }
-  const response = await fetch(`${graphBase}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'text', text: { preview_url: false, body } }),
+
+  await client.messages.create({
+    from: env.TWILIO_PHONE_NUMBER,
+    to,
+    body,
   });
-  if (!response.ok) throw new Error(`WhatsApp send failed: ${response.status} ${await response.text()}`);
 }

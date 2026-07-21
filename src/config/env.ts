@@ -2,9 +2,9 @@ import 'dotenv/config';
 
 export const env = {
   PORT: positiveInt(process.env.PORT, 3000),
-  VERIFY_TOKEN: process.env.VERIFY_TOKEN || 'studybridge-dev-verify-token',
-  WHATSAPP_ACCESS_TOKEN: nonEmpty(process.env.WHATSAPP_ACCESS_TOKEN),
-  WHATSAPP_PHONE_NUMBER_ID: nonEmpty(process.env.WHATSAPP_PHONE_NUMBER_ID),
+  TWILIO_ACCOUNT_SID: nonEmpty(process.env.TWILIO_ACCOUNT_SID),
+  TWILIO_AUTH_TOKEN: nonEmpty(process.env.TWILIO_AUTH_TOKEN),
+  TWILIO_PHONE_NUMBER: nonEmpty(process.env.TWILIO_PHONE_NUMBER),
   OPENAI_API_KEY: nonEmpty(process.env.OPENAI_API_KEY),
   OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-5.6',
   SUPABASE_URL: nonEmpty(process.env.SUPABASE_URL),
